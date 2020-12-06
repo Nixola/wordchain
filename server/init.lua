@@ -77,6 +77,7 @@ while true do
         peers_by.id[id] = p
         table.insert(peers_by.order, p)
         peer_id[event.peer] = id
+        players[#players + 1] = p
         print("Connecting", id)
         send[#send + 1] = {broadcast = true, "join", id, "\"" .. id .. "\" joined the game!"}
       end
@@ -92,6 +93,7 @@ while true do
     elseif action == "list" then
       local playerNicks = {"list"}
       for i, v in ipairs(players) do
+        print("list", i, v)
         table.insert(playerNicks, v.nick)
       end
       send[#send + 1] = playerNicks
@@ -110,7 +112,7 @@ while true do
     		p.timeLeft = 300
     	end
     	lastGuessTime = time
-    	send[#send + 1] = {broadcast = true, "start", players[1].nick, "The game has started! " .. players[1].nick .. " may choose a word."}
+    	send[#send + 1] = {broadcast = true, "start", players[1].nick, 300, "The game has started! " .. players[1].nick .. " may choose a word."}
     elseif action == "word" and state == "game" and players[turn].id == peerID then
     	if not wordlist[arg] then
     		send[#send + 1] = {"error", "\"" .. arg .. "\" isn't a valid word!"}
