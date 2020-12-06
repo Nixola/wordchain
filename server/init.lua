@@ -10,16 +10,6 @@ for word in f:lines() do
 	wordlist[word] = true
 end
 
-string.valid = function(last, guess)
-	local max = math.min(#last, #guess)
-	for i = 1, max do
-		if last:sub(-i, -1) == guess:sub(1, i) then
-			return true
-		end
-	end
-	return false
-end
-
 local host = enet.host_create("0.0.0.0:42068")
 
 local state = "lobby"
@@ -57,7 +47,7 @@ while true do
 			turn = (turn - 1) % #players + 1
 			if #players > 1 then
 				local msg = words[#words] and ('Word to chain onto is "' .. words[#words] .. '"!') or "Choose a first word!"
-				send[#send + 1] = {broadcast = true, "next", words[#words] or "", players[turn].nick, msg}
+				send[#send + 1] = {broadcast = true, "next", words[#words] or "", players[turn].nick, players[turn].timeLeft, msg}
 			end
 		end
 		if #players == 1 then
@@ -99,10 +89,20 @@ while true do
 
     if action == "chat" then
     	send[#send + 1] = {broadcast = true, "chat", peers_by.id[peerID].nick, arg}
+    elseif action == "list" then
+      local playerNicks = {"list"}
+      for i, v in ipairs(players) do
+        table.insert(playerNicks, v.nick)
+      end
+      send[#send + 1] = playerNicks
     elseif action == "nick" and state == "lobby" then
-    	local oldNick = peers_by.id[peerID].nick
-    	peers_by.id[peerID].nick = arg
-    	send[#send + 1] = {broadcast = true, "nick", oldNick, arg, oldNick .. " changed name to \"" .. arg .. "\"!"}
+      if peers_by[arg] then
+        send[#send + 1] = {"error", "Your nick is already in use."}
+      else
+    	  local oldNick = peers_by.id[peerID].nick
+    	  peers_by.id[peerID].nick = arg
+    	  send[#send + 1] = {broadcast = true, "nick", oldNick, arg, oldNick .. " changed name to \"" .. arg .. "\"!"}
+      end
     elseif action == "start" and state == "lobby" then
     	state = "game"
     	for i, p in ipairs(peers_by.order) do
@@ -110,7 +110,7 @@ while true do
     		p.timeLeft = 300
     	end
     	lastGuessTime = time
-    	send[#send + 1] = {broadcast = true, "start", "The game has started! " .. players[1].nick .. " may choose a word."}
+    	send[#send + 1] = {broadcast = true, "start", players[1].nick, "The game has started! " .. players[1].nick .. " may choose a word."}
     elseif action == "word" and state == "game" and players[turn].id == peerID then
     	if not wordlist[arg] then
     		send[#send + 1] = {"error", "\"" .. arg .. "\" isn't a valid word!"}
@@ -148,7 +148,7 @@ while true do
     	end
     end
     local ev = {"disconnect", tostring(peerID), broadcast = true}
-    send = {ev}
+    send[#send + 1] = ev
   end
 
   --[[if time ~= otime then --broadcast a latency update
