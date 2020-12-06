@@ -5,7 +5,7 @@ love.load = function(args)
 		address = args[2]
 		require "client"
 	else
-		print("Specify either --server or --client <address:port>")
-		love.event.quit()
+		print("--server or --client wasn't specified - defaulting to --client nixo.la:42068")
+		require "client"
 	end
 end
