@@ -1,3 +1,5 @@
+assert(config, "Don't run this file directly!")
+
 local enet = require "enet"
 
 local bans = {}

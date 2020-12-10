@@ -54,13 +54,22 @@ local load = function(args)
       love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";server/?.lua")
     end
     package.path = package.path .. ";./server/?.lua"
-    require "init"
-  else
+  elseif config.client then
     assert(love, "You can't run a client without LÖVE.")
     love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";client/?.lua")
     package.path = package.path .. ";./client/?.lua"
-    require "client.init"
+  else
+    local server = not love
+    print("No --client or --server specified.")
+    if server then
+      print("No LÖVE detected, defaulting to server mode.")
+      package.path = package.path .. ";./server/?.lua"
+    else
+      print("LÖVE detected, defaulting to client mode.")
+      package.path = package.path .. ";./client/?.lua"
+    end
   end
+  require "init"
 end
 
 if love then
