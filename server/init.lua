@@ -28,8 +28,8 @@ while true do
 	local send = {}
 	local event = host:service(100)
 
-	if finished then
     --[[
+	if finished then
   	for i, v in ipairs(peers_by.order) do
 			v.obj:disconnect()
 		end
@@ -57,6 +57,7 @@ while true do
 		end
 		if #players == 1 then
 			send[#send + 1] = {broadcast = true, "victory", players[1].nick, players[1].nick .. " won!"}
+            state = "end"
 			finished = true
 		end
 	end
