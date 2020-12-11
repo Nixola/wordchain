@@ -141,7 +141,7 @@ game.update = function(self, dt)
 
   errorTimer = math.max(errorTimer - dt, 0)
 
-  if gamestate == "game" then
+  if gamestate == "game" and players[turn].timeLeft then
     players[turn].timeLeft = math.max(players[turn].timeLeft - dt, 0)
   end
 
@@ -182,7 +182,7 @@ game.draw = function(self)
   if gamestate == "game" then
     love.graphics.setColor(7/8, 7/8, 7/8)
     local p = players[nick]
-    local time = string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60)
+    local time = p.timeLeft and string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60) or ""
     love.graphics.setFont(fonts[24])
     love.graphics.print(time, 8, 8)
     love.graphics.setFont(defaultFont)
