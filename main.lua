@@ -28,7 +28,7 @@ string.valid = function(last, guess)
 	local max = math.min(#last, #guess)
 	for i = 1, max do
 		if last:sub(-i, -1) == guess:sub(1, i) then
-			return true
+			return true, i
 		end
 	end
 	return false

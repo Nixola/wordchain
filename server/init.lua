@@ -131,7 +131,16 @@ while true do
     		if words[arg] then
     			send[#send + 1] = {"error", "\"" .. arg .. "\" was already played! Try again!"}
     		else
+                local common = 0
+                if words[#words] then
+                  local _
+                  _, common = words[#words]:valid(arg)
+                end
     			local oldPlayer = players[turn]
+                if common == 1 then
+                  send[#send + 1] = {"error", "Lazy guess! -5 seconds next turn!"}
+                  oldPlayer.timeLeft = math.max(oldPlayer.timeLeft - 5, 0)
+                end
     			lastGuessTime = time
     			words[#words + 1] = arg
     			words[arg] = true
