@@ -29,6 +29,7 @@ while true do
 	local event = host:service(100)
 
 	if finished then
+    --[[
   	for i, v in ipairs(peers_by.order) do
 			v.obj:disconnect()
 		end
@@ -40,6 +41,7 @@ while true do
 		players = {}
 		finished = false
 	end
+    --]]
 
 	if time ~= otime and state == "game" then
 		local player = players[turn]
