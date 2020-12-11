@@ -81,8 +81,8 @@ game.update = function(self, dt)
       nick = self.connectPending
       self.connectPending = false
     end
-
-    if event and event.type == "receive" then
+    if not event then break end
+    if event.type == "receive" then
       ret = true
 
       local t, args = event.data:match("^([^%:]+)%:?(.*)")
@@ -114,7 +114,7 @@ game.update = function(self, dt)
         end
         gui:remove(startButton)
       elseif t == "chat" then
-        chat[#chat + 1] = {args:match("^([^%:]+):(.+)")}
+        chat[#chat + 1] = ("%s: %s"):format(args:match("^([^%:]+):(.+)")) --{args:match("^([^%:]+):(.+)")}
       elseif t == "loss" then
         local nick = args:match("^([^%:]+)%:?(.+)")
         local p = players[nick]
@@ -132,8 +132,8 @@ game.update = function(self, dt)
       elseif t == "victory" then
         -- handle victory
       end
-    else
-      break
+    elseif event.type == "disconnect" then
+      chat[#chat + 1] = {{4/8, 2/8, 2/8}, "You have been disconnected from the server."}
     end
   end
 
@@ -159,9 +159,10 @@ game.draw = function(self)
   love.graphics.setLineWidth(1)
   love.graphics.line(210 - .5, chatLineHeight, 192 - .5, chatLineHeight, 192 - .5, 720 + .5)
   love.graphics.line(216 + defaultFont:getWidth("Chat") + 6 + .5, chatLineHeight, 1042 + .5, chatLineHeight, 1042 + .5, 720 + .5)
+  love.graphics.setColor(7/8, 7/8, 7/8)
   for i = #chat, math.max(1, #chat - 15), -1 do
     local message = chat[i]
-    local str = ("%s: %s"):format(message[1], message[2])
+    local str = message
     love.graphics.print(str, 200, 660 - (#chat - i)*16)
   end
 
