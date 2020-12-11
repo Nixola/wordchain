@@ -66,6 +66,7 @@ local load = function(args)
       package.path = package.path .. ";./server/?.lua"
     else
       print("LÖVE detected, defaulting to client mode.")
+      love.filesystem.setRequirePath(love.filesystem.getRequirePath() .. ";client/?.lua")
       package.path = package.path .. ";./client/?.lua"
     end
   end
