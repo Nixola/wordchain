@@ -128,6 +128,7 @@ game.update = function(self, dt)
         if wonNick == players:getSelf().nick then
           wonNick = "You"
         end
+        gamestate = "victory"
         chat:success(("%s won!"):format(wonNick))
       elseif t == "error" then
         print("Pushing error", args)
@@ -157,7 +158,7 @@ game.draw = function(self)
 
   --self timer
   local defaultFont = love.graphics.getFont()
-  if gamestate == "game" then
+  if gamestate == "game" or gamestate == "victory" then
     love.graphics.setColor(colours.timer)
     local p = players:getSelf()
     local time = p.timeLeft and string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60) or ""

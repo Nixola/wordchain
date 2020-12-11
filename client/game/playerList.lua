@@ -60,7 +60,7 @@ end
 
 
 players.won = function(self, nick)
-
+  self.winner = nick
 end
 
 
@@ -72,7 +72,7 @@ end
 
 
 players.update = function(self, dt)
-  if self.started and self.list[self.turn].timeLeft then
+  if self.started and self.list[self.turn].timeLeft and not self.winner then
     self.list[self.turn].timeLeft = math.max(self.list[self.turn].timeLeft - dt, 0)
   end
 end
