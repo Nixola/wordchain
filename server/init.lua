@@ -1,7 +1,10 @@
+assert(config, "Don't run this file directly!")
+config.time = tonumber(config.time) or 300
+
 local enet = require "enet"
 
 local bans = {}
-local peers_by = {ip = {}, id = {}, order = {}}
+local peers_by = {ip = {}, id = {}, order = {}, nick = {}}
 local peer_id = {}
 
 local f = io.open("wordlist", "r")
@@ -62,9 +65,6 @@ while true do
     if not ip then
       print("Can't figure out IP. Like hell I'm letting this through.")
       event.peer:reset()
-    elseif state == "game" then
-    	print("Game started. Kicking.")
-    	event.peer:reset()
     else
       ip = ip:match("^(.-)%:%d+$")
       if bans[ip] then
@@ -77,40 +77,52 @@ while true do
         peers_by.id[id] = p
         table.insert(peers_by.order, p)
         peer_id[event.peer] = id
+        --players[#players + 1] = p
         print("Connecting", id)
         send[#send + 1] = {broadcast = true, "join", id, "\"" .. id .. "\" joined the game!"}
+        peers_by.nick[id] = p
+        if state == "game" then
+          p.lost = true
+          p.timeLeft = 0
+          send[#send + 1] = {"start", players[turn].nick, players[turn].timeLeft, "The game has already started."}
+          send[#send + 1] = {broadcast = true, "loss", id, id .. " joined as spectator!"}
+        end
       end
     end
   elseif event and event.type == "receive" then
     local result
     local action, arg = event.data:match("^([^%:]+)%:?(.-)$")
     local peerID = event.peer:connect_id()
+    local peer = peers_by.id[peerID]
     print("Received event", action, "from", event.peer)
 
     if action == "chat" then
     	send[#send + 1] = {broadcast = true, "chat", peers_by.id[peerID].nick, arg}
     elseif action == "list" then
       local playerNicks = {"list"}
-      for i, v in ipairs(players) do
+      for i, v in ipairs(peers_by.order) do
+        print("list", i, v)
         table.insert(playerNicks, v.nick)
       end
       send[#send + 1] = playerNicks
-    elseif action == "nick" and state == "lobby" then
-      if peers_by[arg] then
+    elseif action == "nick" and (state == "lobby" or (peer and peer.nick == peer.id))  then
+      if peers_by.nick[arg] then
         send[#send + 1] = {"error", "Your nick is already in use."}
       else
     	  local oldNick = peers_by.id[peerID].nick
     	  peers_by.id[peerID].nick = arg
+          peers_by.nick[oldNick] = nil
+          peers_by.nick[arg] = peers_by.id[peerID]
     	  send[#send + 1] = {broadcast = true, "nick", oldNick, arg, oldNick .. " changed name to \"" .. arg .. "\"!"}
       end
     elseif action == "start" and state == "lobby" then
     	state = "game"
     	for i, p in ipairs(peers_by.order) do
     		players[#players + 1] = p
-    		p.timeLeft = 300
+    		p.timeLeft = config.time
     	end
     	lastGuessTime = time
-    	send[#send + 1] = {broadcast = true, "start", players[1].nick, "The game has started! " .. players[1].nick .. " may choose a word."}
+    	send[#send + 1] = {broadcast = true, "start", players[1].nick, config.time, "The game has started! " .. players[1].nick .. " may choose a word."}
     elseif action == "word" and state == "game" and players[turn].id == peerID then
     	if not wordlist[arg] then
     		send[#send + 1] = {"error", "\"" .. arg .. "\" isn't a valid word!"}
