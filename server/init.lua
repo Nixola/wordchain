@@ -79,6 +79,7 @@ while true do
         peer_id[event.peer] = id
         --players[#players + 1] = p
         print("Connecting", id)
+        send[#send + 1] = {"self", id}
         send[#send + 1] = {broadcast = true, "join", id, "\"" .. id .. "\" joined the game!"}
         peers_by.nick[id] = p
         if state == "game" then
