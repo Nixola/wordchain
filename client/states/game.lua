@@ -3,21 +3,19 @@ local game = {}
 local gui = require "6raphicaluserinterface.src"()
 local fonts = require "6raphicaluserinterface.src.utils".font
 
-local players = {}
+local colours = require "colours"
+
+local chat = require "game.chat"
+local players = require "game.playerList"
+local errors = require "game.errors"
+
 local gamestate = "lobby"
-local chat = {}
 local turn
 local lastWord
 local server
 local words = {}
 local nick
 
-local errorStr, errorTimer = "", 0
-
-local showError = function(str)
-  errorStr = str
-  errorTimer = 3
-end
 
 game.connect = function(self, nick, address, port)
 
@@ -29,19 +27,12 @@ game.connect = function(self, nick, address, port)
   self.server = r1
   server = r1
   self.connectPending = nick
+
+  chat:init(gui, r1)
+
   return self.host
 end
 
-local chatSendButton = gui:add("button", 1000, 680, "send")
-local chatTextbox    = gui:add("textLine", 200, 680, 790, chatSendButton, "message")
-chatTextbox.validate = function(str) return str end
-
-chatSendButton.callback = function(children)
-  local msg = children.message.text
-  if #msg == 0 then return end
-  server:send("chat:" .. msg)
-  children.message:clear()
-end
 
 local guessSendButton = gui:add("button", 1000, 320, "send")
 local guessTextbox    = gui:add("textLine", 200, 320, 790, guessSendButton, "word")
@@ -52,10 +43,10 @@ guessSendButton.callback = function(children)
   if #newWord == 0 then return end
   if words[#words] then
     if not words[#words]:valid(newWord) then
-      showError("This word doesn't work here!")
+      errors:push("This word doesn't work here!")
       return
     elseif words[newWord] then
-      showError("This word was already played!")
+      errors:push("This word was already played!")
       children.word:clear()
       return
     end
@@ -74,53 +65,52 @@ game.update = function(self, dt)
   local ret = false
   while true do
     local event = self.host:service(0)
+
     if self.connectPending and self.server:state() == "connected" then
       print("Attempting connection")
       self.server:send("list")
       self.server:send("nick" .. ":" .. self.connectPending)
-      nick = self.connectPending
+      --nick = self.connectPending
       self.connectPending = false
     end
+
     if not event then break end
+
     if event.type == "receive" then
       ret = true
 
       local t, args = event.data:match("^([^%:]+)%:?(.*)")
       print("Received event of type", t, event.data)
-      if t == "list" then
-        players = {}
-        for i, player in ipairs(args:split(":")) do
-          players[#players + 1] = {nick = player}
-          players[player] = players[#players]
-        end
+      if t == "self" then
+        nick = args
+        players:init(nick)
+
+      elseif t == "list" then
+        players:setList(args:split(":"))
+
       elseif t == "nick" then
         local oldNick, newNick = args:match("([^%:]+)%:([^%:]+)")
-        print(oldNick, newNick)
-        local p = players[oldNick]
-        players[oldNick] = nil
-        players[newNick] = p
-        p.nick = newNick
+        players:changeNick(oldNick, newNick)
+
       elseif t == "join" then
         local nick = args:match("([^%:]+)%:")
-        players[#players + 1] = {nick = nick}
-        players[nick] = players[#players]
+        players:join(nick)
+
       elseif t == "start" then
         local startTime
         gamestate = "game"
-        print(event.data, args)
         turn, startTime = args:match("^([^%:]+)%:(%d+)")
-        for i, v in ipairs(players) do
-          v.timeLeft = tonumber(startTime)
-        end
+        players:start(turn, startTime)
         gui:remove(startButton)
+
       elseif t == "chat" then
-        chat[#chat + 1] = ("%s: %s"):format(args:match("^([^%:]+):(.+)")) --{args:match("^([^%:]+):(.+)")}
+        chat:receive(args:match("^([^%:]+):(.+)"))
+
       elseif t == "loss" then
         local nick = args:match("^([^%:]+)%:?(.+)")
-        local p = players[nick]
-        p.lost = true
-        p.timeLeft = 0
+        players:lost(nick)
         -- handle own loss
+
       elseif t == "next" then
         local newWord, playerNick, playerTimeLeft = args:match("^([^%:]*)%:([^%:]+)%:(%d+)%:")
         if #newWord > 0 then
@@ -128,22 +118,23 @@ game.update = function(self, dt)
         end
         words[#words + 1] = newWord
         turn = playerNick
-        players[turn].timeLeft = tonumber(playerTimeLeft)
+        players:next(playerNick, playerTimeLeft)
+
       elseif t == "victory" then
         -- handle victory
+      elseif t == "error" then
+        print("Pushing error", args)
+        errors:push(args)
       end
+
     elseif event.type == "disconnect" then
-      chat[#chat + 1] = {{4/8, 2/8, 2/8}, "You have been disconnected from the server."}
+      chat:error("You have been disconnected from the server.")
     end
   end
 
   gui:update(dt)
-
-  errorTimer = math.max(errorTimer - dt, 0)
-
-  if gamestate == "game" and players[turn].timeLeft then
-    players[turn].timeLeft = math.max(players[turn].timeLeft - dt, 0)
-  end
+  players:update(dt)
+  errors:update(dt)
 
   return ret
 end
@@ -152,61 +143,38 @@ game.draw = function(self)
   gui:draw()
 
   --chat
-  love.graphics.setColor(5/8, 5/8, 5/8)
-  local defaultFont = love.graphics.getFont()
-  love.graphics.print("Chat", 216, 660 - 16*16)
-  local chatLineHeight = 660 - 16*16 + defaultFont:getHeight() / 2 + .5
-  love.graphics.setLineWidth(1)
-  love.graphics.line(210 - .5, chatLineHeight, 192 - .5, chatLineHeight, 192 - .5, 720 + .5)
-  love.graphics.line(216 + defaultFont:getWidth("Chat") + 6 + .5, chatLineHeight, 1042 + .5, chatLineHeight, 1042 + .5, 720 + .5)
-  love.graphics.setColor(7/8, 7/8, 7/8)
-  for i = #chat, math.max(1, #chat - 15), -1 do
-    local message = chat[i]
-    local str = message
-    love.graphics.print(str, 200, 660 - (#chat - i)*16)
-  end
+  chat:draw()
 
-  love.graphics.print("Players:", 8, 40)
-  for i, v in ipairs(players) do
-    if v.lost then
-      love.graphics.setColor(1/2, 1/2, 1/2)
-    else
-      love.graphics.setColor(7/8, 7/8, 7/8)
-    end
-    love.graphics.print(v.nick, 16, 40 + i*16)
-    if v.timeLeft then
-      local time = string.format("%02d:%02d", v.timeLeft / 60, v.timeLeft % 60)
-      love.graphics.print(time, 150, 40 + i*16)
-    end
-  end
+  --players
+  players:draw()
+
   --self timer
+  local defaultFont = love.graphics.getFont()
   if gamestate == "game" then
-    love.graphics.setColor(7/8, 7/8, 7/8)
-    local p = players[nick]
+    love.graphics.setColor(colours.timer)
+    local p = players:getSelf()
     local time = p.timeLeft and string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60) or ""
     love.graphics.setFont(fonts[24])
     love.graphics.print(time, 8, 8)
     love.graphics.setFont(defaultFont)
   end
 
-  love.graphics.setColor(7/8, 7/8, 7/8)
+  love.graphics.setColor(colours.text)
   love.graphics.print("Played words:", 1100, 32)
   for i, v in ipairs(words) do
     love.graphics.print(v, 1108, 32+(#words - i + 1) *16)
   end
   if words[#words] then
     love.graphics.setFont(fonts[24])
-    if nick == players[turn].nick then
-      love.graphics.setColor(7/8, 7/8, 7/8)
+    if players:getTurn() == players:getSelf() then
+      love.graphics.setColor(colours.wordTurn)
     else
-      love.graphics.setColor(2/8, 2/8, 2/8)
+      love.graphics.setColor(colours.wordOther)
     end
     love.graphics.printf(words[#words], 200, 260, 840, "center")
     love.graphics.setFont(defaultFont)
   end
-
-  love.graphics.setColor(3/4, 0, 0, math.min(1, errorTimer))
-  love.graphics.print(errorStr, 200, 340)
+  errors:draw()
 end
 
 game.mousepressed = function(self, x, y, b)

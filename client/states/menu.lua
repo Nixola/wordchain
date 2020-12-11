@@ -6,6 +6,8 @@ local gui = require "6raphicaluserinterface.src"()
 local stop
 local nick, addr, err, stopb
 
+local colours = require "colours"
+
 local fonts = require "6raphicaluserinterface.src.utils".font
 
 local connecting = {}
@@ -18,7 +20,7 @@ Each player has a timer, which only ticks down during their turn. When a player'
 I'm planning on expanding the UI (including, but not limited to, a mobile interface), so you're free to suggest me stuff to add/fix over at https://github.com/Nixola/wordchain! (No clickable link because lazy.)
 Enjoy!]]
 
-love.graphics.setBackgroundColor(1/8, 1/8, 1/8)
+love.graphics.setBackgroundColor(colours.background)
 
 local connect = function(children)
 	if connecting.resolving or connecting.ip then return end
@@ -104,10 +106,10 @@ end
 
 menu.draw = function(self)
 	if connecting.resolving then
-		love.graphics.setColor(3/4, 3/4, 1/4)
+		love.graphics.setColor(colours.warning)
 		love.graphics.printf("Resolving...", 32, 400, 178, "center")
 	elseif connecting.ip then
-		love.graphics.setColor(1/4, 3/4, 1/4)
+		love.graphics.setColor(colours.success)
 		love.graphics.printf("Connecting...", 32, 400, 178, "center")
 	end
 	if connecting.resolving or connecting.ip then
@@ -118,18 +120,18 @@ menu.draw = function(self)
 		end
 	end
 	gui:draw()
-	love.graphics.setColor(7/8, 7/8, 7/8, 1)
+	love.graphics.setColor(colours.gray7)
 	love.graphics.setFont(fonts[32])
 	love.graphics.printf("Wordchain", 240, 16, 600, "left")
 	local font = fonts[12]
 	love.graphics.setFont(font)
 	love.graphics.printf(self.helpString, 240, 64, 600, "left")
-	love.graphics.setColor(7/8, 7/8, 7/8, 7/8)
+	love.graphics.setColor(colours.uiLines)
 	local _, wrap = font:getWrap(self.helpString, 600)
 	local height = font:getHeight() * #wrap
 	love.graphics.line(230, 16, 230, 64 + height + 8)
 	if err then
-		love.graphics.setColor(3/4, 1/4, 1/4)
+		love.graphics.setColor(colours.error)
 		love.graphics.print(err, 32, 290)
 	end
 end

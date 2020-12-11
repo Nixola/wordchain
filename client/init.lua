@@ -12,10 +12,11 @@ require "love.window"
 
 
 love.window.setMode(1280, 720)
+love.keyboard.setKeyRepeat(true)
 
 states = {}
-states.game = require "game"
-states.menu = require "menu"
+states.game = require "states.game"
+states.menu = require "states.menu"
 
 state = states.menu
 
