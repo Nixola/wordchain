@@ -119,6 +119,7 @@ game.update = function(self, dt)
         local nick = args:match("^([^%:]+)%:?(.+)")
         local p = players[nick]
         p.lost = true
+        p.timeLeft = 0
         -- handle own loss
       elseif t == "next" then
         local newWord, playerNick, playerTimeLeft = args:match("^([^%:]*)%:([^%:]+)%:(%d+)%:")
@@ -140,8 +141,8 @@ game.update = function(self, dt)
 
   errorTimer = math.max(errorTimer - dt, 0)
 
-  if gamestate == "game" then
-    players[turn].timeLeft = players[turn].timeLeft - dt
+  if gamestate == "game" and players[turn].timeLeft then
+    players[turn].timeLeft = math.max(players[turn].timeLeft - dt, 0)
   end
 
   return ret
@@ -150,7 +151,15 @@ end
 game.draw = function(self)
   gui:draw()
 
-  for i = #chat, math.max(1, #chat - 20), -1 do
+  --chat
+  love.graphics.setColor(5/8, 5/8, 5/8)
+  local defaultFont = love.graphics.getFont()
+  love.graphics.print("Chat", 216, 660 - 16*16)
+  local chatLineHeight = 660 - 16*16 + defaultFont:getHeight() / 2 + .5
+  love.graphics.setLineWidth(1)
+  love.graphics.line(210 - .5, chatLineHeight, 192 - .5, chatLineHeight, 192 - .5, 720 + .5)
+  love.graphics.line(216 + defaultFont:getWidth("Chat") + 6 + .5, chatLineHeight, 1042 + .5, chatLineHeight, 1042 + .5, 720 + .5)
+  for i = #chat, math.max(1, #chat - 15), -1 do
     local message = chat[i]
     local str = ("%s: %s"):format(message[1], message[2])
     love.graphics.print(str, 200, 660 - (#chat - i)*16)
@@ -169,19 +178,30 @@ game.draw = function(self)
       love.graphics.print(time, 150, 40 + i*16)
     end
   end
-
+  --self timer
   if gamestate == "game" then
+    love.graphics.setColor(7/8, 7/8, 7/8)
     local p = players[nick]
-    local time = string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60)
-    local oldFont = love.graphics.getFont()
+    local time = p.timeLeft and string.format("%02d:%02d", p.timeLeft / 60, p.timeLeft % 60) or ""
     love.graphics.setFont(fonts[24])
     love.graphics.print(time, 8, 8)
-    love.graphics.setFont(oldFont)
+    love.graphics.setFont(defaultFont)
   end
 
+  love.graphics.setColor(7/8, 7/8, 7/8)
   love.graphics.print("Played words:", 1100, 32)
   for i, v in ipairs(words) do
-    love.graphics.print(v, 1108, 32+i*16)
+    love.graphics.print(v, 1108, 32+(#words - i + 1) *16)
+  end
+  if words[#words] then
+    love.graphics.setFont(fonts[24])
+    if nick == players[turn].nick then
+      love.graphics.setColor(7/8, 7/8, 7/8)
+    else
+      love.graphics.setColor(2/8, 2/8, 2/8)
+    end
+    love.graphics.printf(words[#words], 200, 260, 840, "center")
+    love.graphics.setFont(defaultFont)
   end
 
   love.graphics.setColor(3/4, 0, 0, math.min(1, errorTimer))
