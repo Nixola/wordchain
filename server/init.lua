@@ -65,9 +65,6 @@ while true do
     if not ip then
       print("Can't figure out IP. Like hell I'm letting this through.")
       event.peer:reset()
-    elseif state == "game" then
-    	print("Game started. Kicking.")
-    	event.peer:reset()
     else
       ip = ip:match("^(.-)%:%d+$")
       if bans[ip] then
@@ -78,30 +75,37 @@ while true do
         local p = {id = id, nick = id, ip = ip, obj = event.peer, latency = "n/a"}
         peers_by.ip[ip] = p
         peers_by.id[id] = p
-        peers_by.nick[id] = p
         table.insert(peers_by.order, p)
         peer_id[event.peer] = id
-        players[#players + 1] = p
+        --players[#players + 1] = p
         print("Connecting", id)
         send[#send + 1] = {broadcast = true, "join", id, "\"" .. id .. "\" joined the game!"}
+        peers_by.nick[id] = p
+        if state == "game" then
+          p.lost = true
+          p.timeLeft = 0
+          send[#send + 1] = {"start", players[turn].nick, players[turn].timeLeft, "The game has already started."}
+          send[#send + 1] = {broadcast = true, "loss", id, id .. " joined as spectator!"}
+        end
       end
     end
   elseif event and event.type == "receive" then
     local result
     local action, arg = event.data:match("^([^%:]+)%:?(.-)$")
     local peerID = event.peer:connect_id()
+    local peer = peers_by.id[peerID]
     print("Received event", action, "from", event.peer)
 
     if action == "chat" then
     	send[#send + 1] = {broadcast = true, "chat", peers_by.id[peerID].nick, arg}
     elseif action == "list" then
       local playerNicks = {"list"}
-      for i, v in ipairs(players) do
+      for i, v in ipairs(peers_by.order) do
         print("list", i, v)
         table.insert(playerNicks, v.nick)
       end
       send[#send + 1] = playerNicks
-    elseif action == "nick" and state == "lobby" then
+    elseif action == "nick" and (state == "lobby" or (peer and peer.nick == peer.id))  then
       if peers_by.nick[arg] then
         send[#send + 1] = {"error", "Your nick is already in use."}
       else
