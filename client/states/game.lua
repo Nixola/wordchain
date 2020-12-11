@@ -107,10 +107,12 @@ game.update = function(self, dt)
         chat:receive(args:match("^([^%:]+):(.+)"))
 
       elseif t == "loss" then
-        local nick = args:match("^([^%:]+)%:?(.+)")
-        players:lost(nick)
-        -- handle own loss
-
+        local lossNick = args:match("^([^%:]+)%:?(.*)")
+        players:lost(lossNick)
+        if lossNick == players:getSelf().nick then
+          lossNick = "You"
+        end
+        chat:error(("%s lost!"):format(lossNick))
       elseif t == "next" then
         local newWord, playerNick, playerTimeLeft = args:match("^([^%:]*)%:([^%:]+)%:(%d+)%:")
         if #newWord > 0 then
@@ -121,7 +123,12 @@ game.update = function(self, dt)
         players:next(playerNick, playerTimeLeft)
 
       elseif t == "victory" then
-        -- handle victory
+        local wonNick = args:match("^([^%:]+)%:?(.*)")
+        players:won(wonNick)
+        if wonNick == players:getSelf().nick then
+          wonNick == "You"
+        end
+        chat:success(("%s won!"):format(wonNick))
       elseif t == "error" then
         print("Pushing error", args)
         errors:push(args)
