@@ -1,9 +1,10 @@
 assert(config, "Don't run this file directly!")
+config.time = tonumber(config.time) or 300
 
 local enet = require "enet"
 
 local bans = {}
-local peers_by = {ip = {}, id = {}, order = {}}
+local peers_by = {ip = {}, id = {}, order = {}, nick = {}}
 local peer_id = {}
 
 local f = io.open("wordlist", "r")
@@ -77,6 +78,7 @@ while true do
         local p = {id = id, nick = id, ip = ip, obj = event.peer, latency = "n/a"}
         peers_by.ip[ip] = p
         peers_by.id[id] = p
+        peers_by.nick[id] = p
         table.insert(peers_by.order, p)
         peer_id[event.peer] = id
         players[#players + 1] = p
@@ -100,21 +102,23 @@ while true do
       end
       send[#send + 1] = playerNicks
     elseif action == "nick" and state == "lobby" then
-      if peers_by[arg] then
+      if peers_by.nick[arg] then
         send[#send + 1] = {"error", "Your nick is already in use."}
       else
     	  local oldNick = peers_by.id[peerID].nick
     	  peers_by.id[peerID].nick = arg
+          peers_by.nick[oldNick] = nil
+          peers_by.nick[arg] = peers_by.id[peerID]
     	  send[#send + 1] = {broadcast = true, "nick", oldNick, arg, oldNick .. " changed name to \"" .. arg .. "\"!"}
       end
     elseif action == "start" and state == "lobby" then
     	state = "game"
     	for i, p in ipairs(peers_by.order) do
     		players[#players + 1] = p
-    		p.timeLeft = 300
+    		p.timeLeft = config.time
     	end
     	lastGuessTime = time
-    	send[#send + 1] = {broadcast = true, "start", players[1].nick, 300, "The game has started! " .. players[1].nick .. " may choose a word."}
+    	send[#send + 1] = {broadcast = true, "start", players[1].nick, config.time, "The game has started! " .. players[1].nick .. " may choose a word."}
     elseif action == "word" and state == "game" and players[turn].id == peerID then
     	if not wordlist[arg] then
     		send[#send + 1] = {"error", "\"" .. arg .. "\" isn't a valid word!"}
