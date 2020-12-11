@@ -32,6 +32,11 @@ chat.error = function(self, message)
 end
 
 
+chat.success = function(self, message)
+  assert(self.initialized, "Init the chat first!")
+  self.messages[#self.messages + 1] = {colours.success, message}
+end
+
 chat.draw = function(self)
   assert(self.initialized, "Init the chat first!")
   love.graphics.setColor(colours.uiLabels)

@@ -59,6 +59,11 @@ players.lost = function(self, nick)
 end
 
 
+players.won = function(self, nick)
+
+end
+
+
 players.next = function(self, turn, timeLeft)
   self.turn = turn
   print("Next", turn)
