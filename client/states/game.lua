@@ -126,7 +126,7 @@ game.update = function(self, dt)
         local wonNick = args:match("^([^%:]+)%:?(.*)")
         players:won(wonNick)
         if wonNick == players:getSelf().nick then
-          wonNick == "You"
+          wonNick = "You"
         end
         chat:success(("%s won!"):format(wonNick))
       elseif t == "error" then
