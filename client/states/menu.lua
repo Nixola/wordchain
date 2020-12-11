@@ -16,7 +16,8 @@ menu.helpString = [[
 Hi! If you're reading this, you may be wondering how to use this wonderful piece of software.
 First of all, connect to a server. Choose a nickname, type in the address and connect. Once connected, you'll find yourself in a lobby. Provided I didn't fuck anything up, you should see a list of connected players. By design, anyone can start the game! You might not like that. Make a pull request.
 After a player starts the game by clicking the button or sending the "/start" command (don't know which, I haven't decided yet while writing this thing), whoever connected first will have to choose a first word. The player after that will then have to choose a word which starts with the end of that word, then the player after that needs to do the same, etc.
-Each player has a timer, which only ticks down during their turn. When a player's timer reaches zero, that player is automatically disqualified and the turn passes over to the next one. Only one will remain. Have fun!
+Each player has a timer, which only ticks down during their turn. When a player's timer reaches zero, that player is automatically disqualified and the turn passes over to the next one. Only one will remain.
+Don't take the lazy path! Words with only the first/last letter in common will take 5 seconds from your timer!
 I'm planning on expanding the UI (including, but not limited to, a mobile interface), so you're free to suggest me stuff to add/fix over at https://github.com/Nixola/wordchain! (No clickable link because lazy.)
 Enjoy!]]
 
